@@ -1,12 +1,12 @@
 function GitHubPersonal {
     git config --global user.name "Grayson Wills"
-    git config --global user.email "calvarygman@gmail.com"
+    git config --global user.email ""
     Write-Output "Switched to Personal GitHub account"
 }
 
 function GitHubBusiness {
     git config --global user.name "Grayson Wills"
-    git config --global user.email "grayson.wills@gm.com"
+    git config --global user.email ""
     Write-Output "Switched to Business GitHub account"
 }
 
