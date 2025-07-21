@@ -1,7 +1,7 @@
 function PowerDown {
     # PowerDown - Closes Outlook, Slack, and Microsoft Teams
 
-    $apps = @("OUTLOOK", "slack", "ms-teams")
+    $apps = @("OUTLOOK", "slack")
 
     foreach ($app in $apps) {
         $processes = Get-Process -Name $app -ErrorAction SilentlyContinue

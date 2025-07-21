@@ -18,10 +18,5 @@ try {
     Write-Warning "Failed to launch Slack"
 }
 
-try {
-    Start-Process "ms-teams"
-    Write-Output "Microsoft Teams launched"
-} catch {
-    Write-Warning "Failed to launch Microsoft Teams"
-}
+
 }
