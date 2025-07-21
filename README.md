@@ -1,4 +1,4 @@
-
+```
 
 $gitRepoUrl = "https://github.com/GraysonWills/PowerShellAutomations.git"
 $clonePath = Join-Path $HOME "Documents\PowerShell\Modules"
@@ -46,3 +46,4 @@ foreach ($module in $moduleDirs) {
 
 Write-Host "`nSetup complete. To apply the changes now, run:"
 Write-Host "    . `$PROFILE`"
+```
