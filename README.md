@@ -1,4 +1,4 @@
-# PowerShellAutomations
+
 
 $gitRepoUrl = "https://github.com/GraysonWills/PowerShellAutomations.git"
 $clonePath = Join-Path $HOME "Documents\PowerShell\Modules"
