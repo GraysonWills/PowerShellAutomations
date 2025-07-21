@@ -3,7 +3,7 @@
 $gitRepoUrl = "https://github.com/GraysonWills/PowerShellAutomations.git"
 $clonePath = Join-Path $HOME "Documents\PowerShell\Modules"
 
-# Step 1: Clone the repository
+
 if (-not (Test-Path $clonePath)) {
     New-Item -ItemType Directory -Path $clonePath -Force | Out-Null
 }
@@ -17,7 +17,6 @@ try {
     return
 }
 
-# Step 2: Add imports to PowerShell profile
 $profilePath = $PROFILE
 if (-not (Test-Path $profilePath)) {
     New-Item -ItemType File -Path $profilePath -Force | Out-Null
