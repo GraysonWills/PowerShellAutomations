@@ -45,5 +45,5 @@ foreach ($module in $moduleDirs) {
 }
 
 Write-Host "`nSetup complete. To apply the changes now, run:"
-Write-Host "    . `$PROFILE`"
+Write-Host "    . $PROFILE"
 ```
