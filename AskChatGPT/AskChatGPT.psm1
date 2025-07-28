@@ -1,8 +1,4 @@
 function AskChatGPT {
-    param (
-        [string]$message = $(Read-Host "Ask ChatGPT")
-    )
-
     $apiKey = $env:OPENAI_API_KEY
     if (-not $apiKey) {
         Write-Error "OPENAI_API_KEY environment variable is not set. Please set it first."
@@ -12,24 +8,42 @@ function AskChatGPT {
     $model = "gpt-3.5-turbo"
     $chatEndpoint = "https://api.openai.com/v1/chat/completions"
 
-    $body = @{
-        model = $model
-        messages = @(
-            @{ role = "system"; content = "You are a helpful assistant." }
-            @{ role = "user"; content = $message }
-        )
-    } | ConvertTo-Json -Depth 3
+    # Start conversation history
+    $messages = @(
+        @{ role = "system"; content = "You are a helpful assistant." }
+    )
 
-    $headers = @{
-        "Authorization" = "Bearer $apiKey"
-        "Content-Type"  = "application/json"
-    }
+    Write-Host "`nChatGPT conversation started. Type 'exit' to quit.`n"
 
-    try {
-        $response = Invoke-RestMethod -Uri $chatEndpoint -Method Post -Headers $headers -Body $body
-        $reply = $response.choices[0].message.content
-        Write-Host "`nChatGPT: $reply"
-    } catch {
-        Write-Error "Failed to connect to ChatGPT: $_"
+    while ($true) {
+        $userInput = Read-Host "You"
+        if ($userInput -eq "exit") {
+            Write-Host "`nConversation ended."
+            break
+        }
+
+        # Add user's message
+        $messages += @{ role = "user"; content = $userInput }
+
+        # Prepare request body
+        $body = @{
+            model = $model
+            messages = $messages
+        } | ConvertTo-Json -Depth 3
+
+        $headers = @{
+            "Authorization" = "Bearer $apiKey"
+            "Content-Type"  = "application/json"
+        }
+
+        try {
+            $response = Invoke-RestMethod -Uri $chatEndpoint -Method Post -Headers $headers -Body $body
+            $reply = $response.choices[0].message.content.Trim()
+            Write-Host "`nChatGPT: $reply`n"
+            $messages += @{ role = "assistant"; content = $reply }
+        } catch {
+            Write-Error "Failed to connect to ChatGPT: $_"
+            break
+        }
     }
 }
