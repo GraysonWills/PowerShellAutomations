@@ -1,108 +1,94 @@
 function chat {
-    $apiKey = $env:OPENAI_API_KEY
-    if (-not $apiKey) {
-        Write-Error "OPENAI_API_KEY is not set."
-        return
-    }
-
     $basePath = Join-Path $HOME 'Documents\PowerShell\ChatSessions'
-    if (-not (Test-Path $basePath)) { New-Item $basePath -ItemType Directory | Out-Null }
 
-    # === Category selection ===
-    $categories = Get-ChildItem -Path $basePath -Directory | Select-Object -ExpandProperty Name
-    Write-Host "`nAvailable session categories:"
-    $index = 1
-    foreach ($cat in $categories) {
-        Write-Host "$index. $cat"
-        $index++
+    if (-not (Test-Path $basePath)) {
+        New-Item -Path $basePath -ItemType Directory | Out-Null
     }
-    Write-Host "$index. Create new category"
-    Write-Host "$($index + 1). Cancel"
 
-    $catChoice = Read-Host "`nChoose category number"
-    if ($catChoice -eq "$($index + 1)") { return }
+    # Category selection
+    $categories = Get-ChildItem $basePath -Directory | Select-Object -ExpandProperty Name
+    Write-Host "`nAvailable session categories:"
+    for ($i = 0; $i -lt $categories.Count; $i++) {
+        Write-Host "$($i + 1). $($categories[$i])"
+    }
+    Write-Host "$($categories.Count + 1). Create new category"
+    Write-Host "$($categories.Count + 2). Cancel"
 
-    if ($catChoice -eq "$index") {
-        $category = Read-Host "New category name"
+    $catChoice = Read-Host "`nChoose a category"
+    if ($catChoice -eq "$($categories.Count + 2)") { return }
+
+    if ($catChoice -eq "$($categories.Count + 1)") {
+        $category = Read-Host "Enter name for new category"
         $categoryPath = Join-Path $basePath $category
-        New-Item $categoryPath -ItemType Directory -Force | Out-Null
+        New-Item -Path $categoryPath -ItemType Directory | Out-Null
     } else {
         $category = $categories[[int]$catChoice - 1]
         $categoryPath = Join-Path $basePath $category
     }
 
-    # === Sub-session selection ===
-    $sessions = Get-ChildItem -Path $categoryPath -Filter *.json | Select-Object -ExpandProperty BaseName
-    Write-Host "`nSub-sessions in [$category]:"
-    $index = 1
-    foreach ($s in $sessions) {
-        Write-Host "$index. $s"
-        $index++
+    # Session selection
+    $sessions = Get-ChildItem $categoryPath -Filter *.json | Select-Object -ExpandProperty BaseName
+    Write-Host "`nAvailable sessions in [$category]:"
+    for ($j = 0; $j -lt $sessions.Count; $j++) {
+        Write-Host "$($j + 1). $($sessions[$j])"
     }
-    Write-Host "$index. Create new sub-session"
-    Write-Host "$($index + 1). Cancel"
+    Write-Host "$($sessions.Count + 1). Create new session"
+    Write-Host "$($sessions.Count + 2). Cancel"
 
-    $sessChoice = Read-Host "`nChoose sub-session number"
-    if ($sessChoice -eq "$($index + 1)") { return }
+    $sessChoice = Read-Host "`nChoose a session"
+    if ($sessChoice -eq "$($sessions.Count + 2)") { return }
 
-    if ($sessChoice -eq "$index") {
-        $sessionName = Read-Host "Enter name for new sub-session"
+    if ($sessChoice -eq "$($sessions.Count + 1)") {
+        $sessionName = Read-Host "Enter name for new session"
 
-        # Choose model
-        Write-Host "`nChoose model:"
-        Write-Host "1. gpt-4o (best and fastest)"
+        Write-Host "`nSelect a model:"
+        Write-Host "1. gpt-4o"
         Write-Host "2. gpt-4"
-        Write-Host "3. gpt-3.5-turbo (fast and cheap)"
-        $modelChoice = Read-Host "Enter model number"
+        Write-Host "3. gpt-3.5-turbo"
+        $modelChoice = Read-Host "Model choice"
         switch ($modelChoice) {
-            1 { $model = "gpt-4o" }
-            2 { $model = "gpt-4" }
-            3 { $model = "gpt-3.5-turbo" }
+            '1' { $model = "gpt-4o" }
+            '2' { $model = "gpt-4" }
+            '3' { $model = "gpt-3.5-turbo" }
             default { $model = "gpt-4o" }
         }
 
-        $messages = @(@{ role = "system"; content = "You are a helpful assistant." })
-        $sessionData = @{ model = $model; messages = $messages }
+        $sessionPath = Join-Path $categoryPath "$sessionName.json"
+        $sessionData = @{ model = $model; messages = @() }
+        $sessionData | ConvertTo-Json -Depth 3 | Set-Content $sessionPath
     } else {
         $sessionName = $sessions[[int]$sessChoice - 1]
-        $sessionFile = "$sessionName.json"
-        $sessionPath = Join-Path $categoryPath $sessionFile
-
-        try {
-            $sessionData = Get-Content $sessionPath -Raw | ConvertFrom-Json
-            $model = $sessionData.model
-            if (-not $model) { $model = "gpt-4o" }
-            $messages = $sessionData.messages
-        } catch {
-            Write-Warning "Failed to load existing session. Starting fresh with gpt-4o."
-            $model = "gpt-4o"
-            $messages = @(@{ role = "system"; content = "You are a helpful assistant." })
-            $sessionData = @{ model = $model; messages = $messages }
-        }
+        $sessionPath = Join-Path $categoryPath "$sessionName.json"
+        $sessionData = Get-Content $sessionPath | ConvertFrom-Json
+        $model = $sessionData.model
+        if (-not $model) { $model = "gpt-4o" }
     }
 
-    $sessionFile = "$sessionName.json"
-    $sessionPath = Join-Path $categoryPath $sessionFile
-    Write-Host "`nChatGPT session [$category/$sessionName] using model [$model] started.`nType 'exit' or 'reset'.`n"
+    $apiKey = $env:OPENAI_API_KEY
+    if (-not $apiKey) {
+        Write-Error "OPENAI_API_KEY environment variable is not set."
+        return
+    }
+
+    Write-Host "`nChatGPT session [$category/$sessionName] using model [$model] started."
+    Write-Host "Type 'exit' to end, or 'reset' to clear the conversation."
 
     while ($true) {
-        $input = Read-Host "You"
-        if ($input -eq 'exit') { break }
-        if ($input -eq 'reset') {
-            $messages = @(@{ role = "system"; content = "You are a helpful assistant." })
-            $sessionData.messages = $messages
-            Remove-Item $sessionPath -Force -ErrorAction SilentlyContinue
-            Write-Host "Session reset.`n"
+        $message = Read-Host "`nYou"
+
+        if ($message -eq "exit") { break }
+        if ($message -eq "reset") {
+            $sessionData.messages = @()
+            Write-Host "Conversation reset."
             continue
         }
 
-        $messages += @{ role = "user"; content = $input }
-        $sessionData.messages = $messages
+        $sessionData.messages += @{ role = "user"; content = $message }
 
-        $body = @{
+        $jsonBody = @{
             model = $model
-            messages = $messages
-        } | ConvertTo-Json -Depth 3
+            messages = $sessionData.messages
+        } | ConvertTo-Json -Depth 3 -Compress
 
         $headers = @{
             "Authorization" = "Bearer $apiKey"
@@ -110,18 +96,15 @@ function chat {
         }
 
         try {
-            $response = Invoke-RestMethod -Uri "https://api.openai.com/v1/chat/completions" `
-                                           -Method POST -Headers $headers -Body $body
-            $reply = $response.choices[0].message.content.Trim()
-            Write-Host "`nChatGPT: $reply`n"
-            $messages += @{ role = "assistant"; content = $reply }
-            $sessionData.messages = $messages
+            $bodyBytes = [System.Text.Encoding]::UTF8.GetBytes($jsonBody)
+            $response = Invoke-RestMethod -Uri "https://api.openai.com/v1/chat/completions" -Method Post -Headers $headers -Body $bodyBytes -ContentType "application/json"
+            $reply = $response.choices[0].message.content
+            Write-Host "`nChatGPT: $reply"
 
-            # Save session
+            $sessionData.messages += @{ role = "assistant"; content = $reply }
             $sessionData | ConvertTo-Json -Depth 3 | Set-Content $sessionPath
         } catch {
-            Write-Error "Failed to get response: $_"
-            break
+            Write-Error "Error contacting ChatGPT: $_"
         }
     }
 }
