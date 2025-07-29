@@ -13,7 +13,11 @@ function AskAndRunGPT {
     $endpoint = "https://api.openai.com/v1/chat/completions"
 
     # Force ChatGPT to ONLY respond with raw PowerShell code
-    $engineeredPrompt = "Respond ONLY with valid executable PowerShell code. Do not include explanation, markdown, comments, or any formatting. $message"
+    $engineeredPrompt = "Respond ONLY with valid executable PowerShell code. Do not include explanation, markdown, comments, or any formatting. Assume in
+	any messages that you are given the api keys/authentication to the necessary external modules
+	OPENAI_API_KEY = `$env:OPENAI_API_KEY`
+	model = `gpt-4o'
+	$message"
 
     $body = @{
         model = $model
